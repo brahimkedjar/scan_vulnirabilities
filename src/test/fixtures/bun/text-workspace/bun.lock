@@ -1,0 +1,35 @@
+{
+  // Bun text locks are JSONC and permit trailing commas.
+  "lockfileVersion": 2,
+  "workspaces": {
+    "": {
+      "name": "bun-root",
+      "dependencies": {
+        "alpha": "^1.0.0",
+        "alias-util": "npm:real-util@^3.0.0",
+        "local-workspace": "workspace:*",
+      },
+      "optionalDependencies": {
+        "optional-addon": "^4.0.0",
+      },
+      "devDependencies": {
+        "dev-tool": "^5.0.0",
+      },
+    },
+    "packages/app": {
+      "name": "bun-app",
+      "dependencies": {
+        "workspace-runtime": "^6.0.0",
+      },
+    },
+  },
+  "packages": {
+    "alpha": ["alpha@1.2.3", "", { "dependencies": { "beta": "^2.0.0" } }, "sha512-alpha"],
+    "beta": ["beta@2.4.0", "", {}, "sha512-beta"],
+    "alias-util": ["real-util@3.1.0", "", {}, "sha512-real"],
+    "optional-addon": ["optional-addon@4.0.2", "", {}, "sha512-optional"],
+    "dev-tool": ["dev-tool@5.3.0", "", {}, "sha512-dev"],
+    "workspace-runtime": ["workspace-runtime@6.0.1", "", {}, "sha512-workspace"],
+    "local-workspace": ["local-workspace@workspace:packages/local-workspace"],
+  },
+}

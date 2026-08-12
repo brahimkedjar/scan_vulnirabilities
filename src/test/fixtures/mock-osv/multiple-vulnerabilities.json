@@ -1,0 +1,46 @@
+{
+  "vulns": [
+    {
+      "id": "OSV-TEST-ONE",
+      "modified": "2026-02-01T00:00:00Z",
+      "summary": "First deterministic vulnerability",
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fixture-package"
+          },
+          "versions": [
+            "1.2.3"
+          ],
+          "database_specific": {
+            "severity": "MEDIUM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "OSV-TEST-TWO",
+      "modified": "2026-02-02T00:00:00Z",
+      "summary": "Second deterministic vulnerability",
+      "aliases": [
+        "CVE-2026-0002",
+        "GHSA-dddd-eeee-ffff"
+      ],
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fixture-package"
+          },
+          "versions": [
+            "1.2.3"
+          ],
+          "database_specific": {
+            "severity": "LOW"
+          }
+        }
+      ]
+    }
+  ]
+}

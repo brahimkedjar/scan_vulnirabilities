@@ -1,0 +1,6 @@
+{
+  "name": "example/phase4-smoke",
+  "require": {
+    "symfony/http-foundation": "^6.4"
+  }
+}

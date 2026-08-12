@@ -1,0 +1,310 @@
+{
+  "name": "dependency-vulnerability-auditor",
+  "displayName": "Dependency Vulnerability Auditor",
+  "description": "Audits resolved dependencies across supported ecosystems and presents known OSV vulnerabilities in VS Code.",
+  "version": "0.7.0",
+  "publisher": "c9aeb496-ae78-660b-a56e-b4102ed5df53",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brahimkedjar/scan_vulnirabilities.git"
+  },
+  "homepage": "https://github.com/brahimkedjar/scan_vulnirabilities",
+  "bugs": {
+    "url": "https://github.com/brahimkedjar/scan_vulnirabilities/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "dependencies",
+    "security",
+    "vulnerability",
+    "audit",
+    "supply-chain"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:dependencyAuditor.scanWorkspace",
+    "onCommand:dependencyAuditor.showDashboard",
+    "onCommand:dependencyAuditor.refreshScan",
+    "onCommand:dependencyAuditor.showVulnerabilities",
+    "onCommand:dependencyAuditor.refreshVulnerabilityDatabase",
+    "onCommand:dependencyAuditor.showRemediation",
+    "onCommand:dependencyAuditor.previewFix",
+    "onCommand:dependencyAuditor.applyFix",
+    "onCommand:dependencyAuditor.cancelRemediation",
+    "onView:dependencyAuditor.securityView",
+    "onView:dependencyAuditor.remediationView"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "Scanning is read-only, never executes workspace code, and sends only supported package identities, resolved versions, and ecosystem identifiers to OSV after an explicit scan or when the user opts into automatic scanning."
+    },
+    "virtualWorkspaces": {
+      "supported": true,
+      "description": "Dependency metadata is read through VS Code workspace file-system APIs; diagnostics depend on the workspace file-system provider."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "dependencyAuditor.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled"
+      },
+      {
+        "command": "dependencyAuditor.showDashboard",
+        "title": "Show Dashboard",
+        "category": "Dependency Auditor",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "dependencyAuditor.refreshScan",
+        "title": "Rescan Workspace",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dependencyAuditor.showVulnerabilities",
+        "title": "Show Vulnerabilities",
+        "category": "Dependency Auditor",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "dependencyAuditor.refreshVulnerabilityDatabase",
+        "title": "Refresh Vulnerability Database",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "dependencyAuditor.showRemediation",
+        "title": "Show Remediation",
+        "category": "Dependency Auditor",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "dependencyAuditor.previewFix",
+        "title": "Preview Dependency Fix",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "dependencyAuditor.applyFix",
+        "title": "Confirm Remediation Proposal",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && isWorkspaceTrusted"
+      },
+      {
+        "command": "dependencyAuditor.cancelRemediation",
+        "title": "Cancel Dependency Remediation",
+        "category": "Dependency Auditor"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dependencyAuditor",
+          "title": "Dependency Security",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "dependencyAuditor": [
+        {
+          "id": "dependencyAuditor.securityView",
+          "name": "Dependency Security",
+          "contextualTitle": "Dependency Security"
+        },
+        {
+          "id": "dependencyAuditor.remediationView",
+          "name": "Remediation",
+          "type": "webview",
+          "contextualTitle": "Dependency Remediation"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "dependencyAuditor.securityView",
+        "contents": "No dependency scan results are available.\n[Scan Workspace](command:dependencyAuditor.scanWorkspace)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "dependencyAuditor.scanWorkspace"
+        },
+        {
+          "command": "dependencyAuditor.showDashboard"
+        },
+        {
+          "command": "dependencyAuditor.refreshScan"
+        },
+        {
+          "command": "dependencyAuditor.showVulnerabilities"
+        },
+        {
+          "command": "dependencyAuditor.refreshVulnerabilityDatabase"
+        },
+        {
+          "command": "dependencyAuditor.showRemediation"
+        },
+        {
+          "command": "dependencyAuditor.previewFix"
+        },
+        {
+          "command": "dependencyAuditor.applyFix"
+        },
+        {
+          "command": "dependencyAuditor.cancelRemediation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "dependencyAuditor.showDashboard",
+          "when": "view == dependencyAuditor.securityView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dependencyAuditor.refreshScan",
+          "when": "view == dependencyAuditor.securityView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dependencyAuditor.showRemediation",
+          "when": "view == dependencyAuditor.securityView",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Dependency Vulnerability Auditor",
+      "properties": {
+        "dependencyAuditor.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable dependency vulnerability scanning and related UI."
+        },
+        "dependencyAuditor.scanOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Scan supported workspaces when the extension activates. Enabling this may send exact package identities, resolved versions, and ecosystem identifiers to OSV."
+        },
+        "dependencyAuditor.scanOnChange": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Rescan after a supported dependency manifest or lockfile changes. Debouncing and the vulnerability cache limit network traffic."
+        },
+        "dependencyAuditor.minimumSeverity": {
+          "type": "string",
+          "enum": [
+            "UNKNOWN",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "default": "UNKNOWN",
+          "markdownDescription": "Minimum normalized severity displayed in Phase 3 UI and diagnostics. `UNKNOWN` includes findings without a reliable severity."
+        },
+        "dependencyAuditor.includeDevDependencies": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include dependencies that are exclusively marked as development dependencies in the lockfile."
+        },
+        "dependencyAuditor.includeTransitiveDependencies": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include resolved transitive dependencies in vulnerability analysis."
+        },
+        "dependencyAuditor.enabledEcosystems": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "npm",
+              "PyPI",
+              "Maven",
+              "crates.io",
+              "Go",
+              "NuGet",
+              "Packagist"
+            ]
+          },
+          "default": [
+            "npm",
+            "PyPI",
+            "Maven",
+            "crates.io",
+            "Go",
+            "NuGet",
+            "Packagist"
+          ],
+          "markdownDescription": "Canonical OSV ecosystems enabled for static dependency discovery and vulnerability queries. An empty list disables all ecosystem adapters."
+        },
+        "dependencyAuditor.cacheDuration": {
+          "type": "number",
+          "default": 24,
+          "minimum": 0.25,
+          "maximum": 720,
+          "markdownDescription": "How many hours a successful OSV response remains fresh. Empty successful responses are cached; provider errors are not."
+        },
+        "dependencyAuditor.networkTimeout": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 1000,
+          "maximum": 60000,
+          "markdownDescription": "Timeout in milliseconds for each OSV request attempt."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --main-fields=module,main --external:vscode --outfile=dist/extension.js --sourcemap",
+    "compile": "tsc -p tsconfig.json && npm run bundle",
+    "watch": "tsc --watch -p tsconfig.json",
+    "lint": "eslint .",
+    "test:unit": "node --test \"dist/test/*.test.js\"",
+    "test": "npm run compile && npm run lint && npm run test:unit",
+    "package:check": "vsce ls --no-dependencies",
+    "package:vsix": "vsce package --no-dependencies",
+    "check": "npm test && npm run package:check"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/semver": "^7.8.0",
+    "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
+  },
+  "packageManager": "npm@11.6.2",
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "minimatch": "^10.2.6",
+    "saxes": "6.0.0",
+    "semver": "^7.8.5",
+    "smol-toml": "1.8.0",
+    "yaml": "2.9.0"
+  }
+}

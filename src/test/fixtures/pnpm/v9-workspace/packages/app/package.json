@@ -1,0 +1,6 @@
+{
+  "name": "pnpm-app",
+  "dependencies": {
+    "workspace-runtime": "^6.0.0"
+  }
+}

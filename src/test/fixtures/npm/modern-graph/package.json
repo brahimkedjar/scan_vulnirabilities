@@ -1,0 +1,23 @@
+{
+  "name": "fixture-application",
+  "version": "1.0.0",
+  "dependencies": {
+    "alias-util": "npm:real-util@^3.0.0",
+    "package-a": "^1.0.0"
+  },
+  "devDependencies": {
+    "dev-tool": "~2.0.0"
+  },
+  "optionalDependencies": {
+    "optional-addon": "1.1.0"
+  },
+  "peerDependencies": {
+    "missing-optional-peer": "^1.0.0",
+    "peer-host": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "missing-optional-peer": {
+      "optional": true
+    }
+  }
+}

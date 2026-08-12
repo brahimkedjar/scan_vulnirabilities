@@ -1,0 +1,22 @@
+__metadata:
+  version: 8
+  cacheKey: 10c0
+
+"alpha@npm:^1.0.0":
+  version: 1.5.0
+  resolution: "alpha@npm:1.5.0"
+  dependencies:
+    beta: "npm:^2.0.0"
+  dependenciesMeta:
+    beta:
+      optional: true
+  checksum: 10/example
+  languageName: node
+  linkType: hard
+
+"beta@npm:^2.0.0":
+  version: 2.1.0
+  resolution: "beta@npm:2.1.0"
+  checksum: 10/example
+  languageName: node
+  linkType: hard

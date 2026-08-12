@@ -1,0 +1,55 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+  .:
+    dependencies:
+      alpha:
+        specifier: ^1.0.0
+        version: 1.2.3
+      alias-util:
+        specifier: npm:real-util@^3.0.0
+        version: real-util@3.1.0
+      local-workspace:
+        specifier: workspace:*
+        version: link:packages/local-workspace
+    optionalDependencies:
+      optional-addon:
+        specifier: ^4.0.0
+        version: 4.0.2
+    devDependencies:
+      dev-tool:
+        specifier: ^5.0.0
+        version: 5.3.0
+  packages/app:
+    dependencies:
+      workspace-runtime:
+        specifier: ^6.0.0
+        version: 6.0.1
+
+packages:
+  alpha@1.2.3:
+    resolution: {integrity: sha512-alpha}
+  beta@2.4.0:
+    resolution: {integrity: sha512-beta}
+  real-util@3.1.0:
+    resolution: {integrity: sha512-real}
+  optional-addon@4.0.2:
+    resolution: {integrity: sha512-optional}
+  dev-tool@5.3.0:
+    resolution: {integrity: sha512-dev}
+  workspace-runtime@6.0.1:
+    resolution: {integrity: sha512-workspace}
+
+snapshots:
+  alpha@1.2.3:
+    dependencies:
+      beta: 2.4.0
+  beta@2.4.0: {}
+  real-util@3.1.0: {}
+  optional-addon@4.0.2: {}
+  dev-tool@5.3.0: {}
+  workspace-runtime@6.0.1: {}

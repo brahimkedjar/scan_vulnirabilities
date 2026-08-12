@@ -1,0 +1,30 @@
+# Generated fixture; parsed statically and never executed.
+
+[[package]]
+name = "requests"
+version = "2.31.0"
+groups = ["main"]
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+urllib3 = ">=1.21.1,<3"
+
+[[package]]
+name = "urllib3"
+version = "2.0.7"
+groups = ["main"]
+optional = false
+python-versions = ">=3.8"
+
+[[package]]
+name = "pytest"
+version = "8.3.4"
+groups = ["dev"]
+optional = false
+python-versions = ">=3.8"
+
+[metadata]
+lock-version = "2.1"
+python-versions = ">=3.8"
+content-hash = "fixture"

@@ -1,0 +1,12 @@
+[package]
+name = "cargo-fixture"
+version = "0.1.0"
+
+[dependencies]
+serde = "1.0"
+renamed-regex = { package = "regex", version = "1" }
+optional-crate = { version = "0.3", optional = true }
+local-helper = { path = "../local-helper" }
+
+[dev-dependencies]
+tempfile = "3"

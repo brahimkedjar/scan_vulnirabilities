@@ -1,0 +1,7 @@
+[project]
+name = "poetry-fixture"
+version = "1.0.0"
+dependencies = ["requests>=2.31,<3"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"

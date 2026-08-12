@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Newtonsoft.Json": {
+        "type": "Direct",
+        "requested": "[13.0.3, )",
+        "resolved": "13.0.3",
+        "contentHash": "fixture"
+      },
+      "Example.Direct": {
+        "type": "Direct",
+        "requested": "[2.*, )",
+        "resolved": "2.4.0",
+        "contentHash": "fixture",
+        "dependencies": {
+          "Example.Transitive": "[1.0.0, )"
+        }
+      },
+      "Example.Transitive": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "fixture"
+      }
+    }
+  }
+}

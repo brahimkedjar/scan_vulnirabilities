@@ -1,0 +1,23 @@
+{
+  "_readme": ["Phase 4 extension-host smoke fixture"],
+  "content-hash": "phase4-smoke",
+  "packages": [
+    {
+      "name": "symfony/http-foundation",
+      "version": "v6.4.12",
+      "require": {
+        "php": ">=8.1"
+      },
+      "type": "library"
+    }
+  ],
+  "packages-dev": [],
+  "aliases": [],
+  "minimum-stability": "stable",
+  "stability-flags": {},
+  "prefer-stable": false,
+  "prefer-lowest": false,
+  "platform": {},
+  "platform-dev": {},
+  "plugin-api-version": "2.6.0"
+}

@@ -1,0 +1,44 @@
+version = 4
+
+[[package]]
+name = "cargo-fixture"
+version = "0.1.0"
+dependencies = [
+ "optional-crate",
+ "regex",
+ "serde",
+ "tempfile",
+]
+
+[[package]]
+name = "optional-crate"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fixture"
+
+[[package]]
+name = "regex"
+version = "1.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fixture"
+
+[[package]]
+name = "serde"
+version = "1.0.210"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fixture"
+dependencies = [
+ "serde_derive 1.0.210 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.210"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fixture"
+
+[[package]]
+name = "tempfile"
+version = "3.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fixture"

@@ -1,0 +1,50 @@
+{
+  "_readme": ["fixture"],
+  "content-hash": "fixture",
+  "packages": [
+    {
+      "name": "symfony/http-foundation",
+      "version": "v6.4.12",
+      "require": {
+        "php": ">=8.1",
+        "symfony/polyfill-mbstring": "~1.0"
+      },
+      "type": "library"
+    },
+    {
+      "name": "symfony/polyfill-mbstring",
+      "version": "v1.31.0",
+      "require": {
+        "php": ">=7.1"
+      },
+      "type": "library"
+    }
+  ],
+  "packages-dev": [
+    {
+      "name": "phpunit/phpunit",
+      "version": "11.3.6",
+      "require": {
+        "php": ">=8.2",
+        "sebastian/version": "^5.0"
+      },
+      "type": "library"
+    },
+    {
+      "name": "sebastian/version",
+      "version": "5.0.2",
+      "require": {
+        "php": ">=8.2"
+      },
+      "type": "library"
+    }
+  ],
+  "aliases": [],
+  "minimum-stability": "stable",
+  "stability-flags": {},
+  "prefer-stable": false,
+  "prefer-lowest": false,
+  "platform": {},
+  "platform-dev": {},
+  "plugin-api-version": "2.6.0"
+}

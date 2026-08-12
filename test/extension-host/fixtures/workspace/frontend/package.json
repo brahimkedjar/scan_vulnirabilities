@@ -1,0 +1,11 @@
+{
+  "name": "phase4-smoke-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "fixture-npm": "1.2.3"
+  }
+}

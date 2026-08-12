@@ -1,0 +1,6 @@
+{
+  "name": "bun-app",
+  "dependencies": {
+    "workspace-runtime": "^6.0.0"
+  }
+}

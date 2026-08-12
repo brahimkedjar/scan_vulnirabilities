@@ -1,0 +1,31 @@
+{
+  "folders": [
+    { "name": "frontend", "path": "frontend" },
+    { "name": "backend", "path": "backend" },
+    { "name": "maven", "path": "maven" },
+    { "name": "cargo", "path": "cargo" },
+    { "name": "go", "path": "go" },
+    { "name": "nuget", "path": "nuget" },
+    { "name": "composer", "path": "composer" },
+    { "name": "coverage-gap", "path": "coverage-gap" }
+  ],
+  "settings": {
+    "dependencyAuditor.enabled": true,
+    "dependencyAuditor.scanOnStartup": false,
+    "dependencyAuditor.scanOnChange": false,
+    "dependencyAuditor.minimumSeverity": "UNKNOWN",
+    "dependencyAuditor.includeDevDependencies": true,
+    "dependencyAuditor.includeTransitiveDependencies": true,
+    "dependencyAuditor.enabledEcosystems": [
+      "npm",
+      "PyPI",
+      "Maven",
+      "crates.io",
+      "Go",
+      "NuGet",
+      "Packagist"
+    ],
+    "dependencyAuditor.cacheDuration": 24,
+    "dependencyAuditor.networkTimeout": 10000
+  }
+}

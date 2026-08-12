@@ -1,0 +1,6 @@
+{
+  "name": "yarn-berry-root",
+  "dependencies": {
+    "alpha": "^1.0.0"
+  }
+}

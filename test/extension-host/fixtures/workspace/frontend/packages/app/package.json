@@ -1,0 +1,8 @@
+{
+  "name": "phase4-smoke-workspace-app",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "fixture-npm": "1.2.3"
+  }
+}

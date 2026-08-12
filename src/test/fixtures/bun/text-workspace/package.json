@@ -1,0 +1,14 @@
+{
+  "name": "bun-root",
+  "dependencies": {
+    "alpha": "^1.0.0",
+    "alias-util": "npm:real-util@^3.0.0",
+    "local-workspace": "workspace:*"
+  },
+  "optionalDependencies": {
+    "optional-addon": "^4.0.0"
+  },
+  "devDependencies": {
+    "dev-tool": "^5.0.0"
+  }
+}

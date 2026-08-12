@@ -1,0 +1,7 @@
+# This is a Gradle generated fixture for static parser tests.
+com.google.guava:failureaccess:1.0.2=compileClasspath,runtimeClasspath
+com.google.guava:guava:33.2.1-jre=compileClasspath,runtimeClasspath
+org.junit.jupiter:junit-jupiter:5.10.2=testCompileClasspath,testRuntimeClasspath
+org.springframework:spring-core:5.3.39=compileClasspath,runtimeClasspath
+org.springframework:spring-jcl:5.3.39=compileClasspath,runtimeClasspath
+empty=annotationProcessor
