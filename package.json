@@ -3,7 +3,7 @@
   "displayName": "Dependency Vulnerability Auditor",
   "description": "Audits resolved dependencies across supported ecosystems and presents known OSV vulnerabilities in VS Code.",
   "version": "0.7.0",
-  "publisher": "c9aeb496-ae78-660b-a56e-b4102ed5df53",
+  "publisher": "brahimkedjar",
   "icon": "media/icon.png",
   "repository": {
     "type": "git",

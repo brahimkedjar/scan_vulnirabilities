@@ -300,7 +300,7 @@ if (-not [string]::IsNullOrWhiteSpace($VsixPath)) {
 
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $extensionId = "$($manifest.publisher).$($manifest.name)"
-if ($extensionId -cne "c9aeb496-ae78-660b-a56e-b4102ed5df53.dependency-vulnerability-auditor") {
+if ($extensionId -cne "brahimkedjar.dependency-vulnerability-auditor") {
     throw "Unexpected extension ID: $extensionId"
 }
 if ([string]$manifest.version -cne "0.7.0") {

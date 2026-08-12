@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const vscode = require("vscode");
 
-const EXTENSION_ID = "c9aeb496-ae78-660b-a56e-b4102ed5df53.dependency-vulnerability-auditor";
+const EXTENSION_ID = "brahimkedjar.dependency-vulnerability-auditor";
 const COMMANDS = Object.freeze([
   "dependencyAuditor.scanWorkspace",
   "dependencyAuditor.refreshScan",
