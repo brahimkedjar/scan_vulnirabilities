@@ -12,6 +12,9 @@ const vscode = require("vscode");
 const EXTENSION_ID = "brahimkedjar.dependency-vulnerability-auditor";
 const COMMANDS = Object.freeze({
   details: "dependencyAuditor.showVulnerabilityDetails",
+  evaluateSecurityGate: "dependencyAuditor.evaluateSecurityGate",
+  exportCycloneDx: "dependencyAuditor.exportCycloneDx",
+  exportSarif: "dependencyAuditor.exportSarif",
   refreshDatabase: "dependencyAuditor.refreshVulnerabilityDatabase",
   refreshScan: "dependencyAuditor.refreshScan",
   scan: "dependencyAuditor.scanWorkspace",
@@ -1256,7 +1259,7 @@ async function runSmoke() {
     assert.ok(extension, `exact extension ${EXTENSION_ID} must be installed for development`);
     assert.equal(extension.id, EXTENSION_ID);
     assert.equal(path.resolve(extension.extensionPath), extensionRoot);
-    assert.equal(extension.packageJSON.version, "0.7.0");
+    assert.equal(extension.packageJSON.version, "0.8.0");
     const api = await extension.activate();
     for (const method of [
       "getDashboardHtml",

@@ -40,7 +40,7 @@ async function readManifest(): Promise<ExtensionManifest> {
   return parsed as ExtensionManifest;
 }
 
-void test("manifest contributes the Phase 5B commands, view, and settings", async () => {
+void test("manifest contributes remediation and Phase 7 security-platform commands", async () => {
   const manifest = await readManifest();
 
   assert.equal(manifest.main, "./dist/extension.js");
@@ -51,7 +51,14 @@ void test("manifest contributes the Phase 5B commands, view, and settings", asyn
     ),
     true,
   );
-  for (const command of ["previewFix", "applyFix", "cancelRemediation"]) {
+  for (const command of [
+    "previewFix",
+    "applyFix",
+    "cancelRemediation",
+    "evaluateSecurityGate",
+    "exportCycloneDx",
+    "exportSarif",
+  ]) {
     assert.equal(
       (manifest.activationEvents as readonly unknown[]).includes(
         `onCommand:dependencyAuditor.${command}`,
@@ -86,6 +93,9 @@ void test("manifest contributes the Phase 5B commands, view, and settings", asyn
       "dependencyAuditor.previewFix",
       "dependencyAuditor.applyFix",
       "dependencyAuditor.cancelRemediation",
+      "dependencyAuditor.evaluateSecurityGate",
+      "dependencyAuditor.exportCycloneDx",
+      "dependencyAuditor.exportSarif",
     ],
   );
   assert.equal(
@@ -133,5 +143,13 @@ void test("manifest contributes the Phase 5B commands, view, and settings", asyn
       markdownDescription:
         "How many hours a successful OSV response remains fresh. Empty successful responses are cached; provider errors are not.",
     },
+  );
+  assert.equal(
+    properties?.["dependencyAuditor.enableCisaKevEnrichment"]?.default,
+    true,
+  );
+  assert.deepEqual(
+    properties?.["dependencyAuditor.securityPolicy"]?.default,
+    { schemaVersion: 1, maxCritical: 0 },
   );
 });

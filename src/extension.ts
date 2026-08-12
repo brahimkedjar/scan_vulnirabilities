@@ -1,9 +1,16 @@
 import * as vscode from "vscode";
 
+import { SecurityPlatformCommands } from "./commands/SecurityPlatformCommands";
 import { ScanWorkspaceCommand } from "./commands/scanWorkspace";
 import { DiagnosticManager } from "./diagnostics/DiagnosticManager";
 import { isVulnerabilityArray } from "./models/validators";
 import type { Vulnerability } from "./models/Vulnerability";
+import {
+  CisaKevProvider,
+  isCisaKevCatalog,
+  type CisaKevCatalog,
+} from "./intelligence/enrichment";
+import { SecurityIntelligenceService } from "./intelligence/SecurityIntelligenceService";
 import { BunAdapter } from "./package-managers/bun/BunAdapter";
 import { CargoAdapter } from "./package-managers/cargo/CargoAdapter";
 import { ComposerAdapter } from "./package-managers/composer/ComposerAdapter";
@@ -69,8 +76,14 @@ export const PREVIEW_FIX_COMMAND = "dependencyAuditor.previewFix";
 export const APPLY_FIX_COMMAND = "dependencyAuditor.applyFix";
 export const CANCEL_REMEDIATION_COMMAND =
   "dependencyAuditor.cancelRemediation";
+export const EVALUATE_SECURITY_GATE_COMMAND =
+  "dependencyAuditor.evaluateSecurityGate";
+export const EXPORT_CYCLONE_DX_COMMAND =
+  "dependencyAuditor.exportCycloneDx";
+export const EXPORT_SARIF_COMMAND = "dependencyAuditor.exportSarif";
 export const SECURITY_TREE_VIEW = "dependencyAuditor.securityView";
 export const OUTPUT_CHANNEL_NAME = "Dependency Vulnerability Auditor";
+export const EXTENSION_VERSION = "0.8.0";
 
 export interface DependencyAuditorTestApi {
   readonly getDashboardHtml: () => string | undefined;
@@ -131,6 +144,27 @@ export function activate(
   );
   const reportService = new ScanReportService(logger);
   const resultStore = new ScanResultStore();
+  const cisaNetworkService = new NetworkService({
+    allowedHosts: ["www.cisa.gov"],
+    timeoutMs: configuration.networkTimeout,
+    maximumAttempts: 3,
+    maximumRequestBytes: 1_024,
+    maximumResponseBytes: 4 * 1024 * 1024,
+  });
+  const cisaCache = new VulnerabilityCache<CisaKevCatalog>(
+    context.globalState,
+    {
+      ttlMs: 24 * 60 * 60 * 1_000,
+      maximumEntries: 1,
+      maximumEntryBytes: 4 * 1024 * 1024,
+      maximumTotalBytes: 4 * 1024 * 1024,
+      storageKey: "dependencyAuditor.cisaKevCache.v1",
+      validateValue: isCisaKevCatalog,
+    },
+  );
+  const securityIntelligence = new SecurityIntelligenceService(
+    new CisaKevProvider(cisaNetworkService, cisaCache),
+  );
   const remediationAnalyzer = new RemediationAnalyzer();
   const diagnosticManager = new DiagnosticManager(
     vscode.languages.createDiagnosticCollection("dependency-vulnerability-auditor"),
@@ -162,6 +196,83 @@ export function activate(
         | GitExtensionLike
         | undefined,
     ),
+  });
+  const securityPlatformCommands = new SecurityPlatformCommands({
+    logger,
+    getSnapshot: () => resultStore.getSnapshot(),
+    getPolicy: () =>
+      vscode.workspace
+        .getConfiguration("dependencyAuditor")
+        .get<unknown>("securityPolicy") ?? {
+        schemaVersion: 1,
+        maxCritical: 0,
+      },
+    getWorkspaceRoots: () =>
+      Object.freeze(
+        (vscode.workspace.workspaceFolders ?? [])
+          .filter((folder) => folder.uri.scheme === "file")
+          .map((folder) => folder.uri.fsPath),
+      ),
+    loadIntelligence: async (vulnerabilities, signal) => {
+      const enabled =
+        vscode.workspace
+          .getConfiguration("dependencyAuditor")
+          .get<boolean>("enableCisaKevEnrichment") ?? true;
+      return enabled
+        ? securityIntelligence.analyze(vulnerabilities, {
+            ...(signal === undefined ? {} : { signal }),
+          })
+        : undefined;
+    },
+    ui: (() => {
+      const approvedExportLocations = new WeakSet<object>();
+      return {
+      chooseSaveLocation: async (kind, suggestedFileName) => {
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        const defaultUri =
+          folder === undefined
+            ? undefined
+            : vscode.Uri.joinPath(folder.uri, suggestedFileName);
+        const selected = await vscode.window.showSaveDialog({
+          ...(defaultUri === undefined ? {} : { defaultUri }),
+          filters:
+            kind === "cyclonedx"
+              ? { "CycloneDX JSON": ["json"] }
+              : { "SARIF JSON": ["sarif", "json"] },
+          saveLabel:
+            kind === "cyclonedx" ? "Export CycloneDX" : "Export SARIF",
+          title:
+            kind === "cyclonedx"
+              ? "Export CycloneDX JSON 1.6"
+              : "Export SARIF 2.1.0",
+        });
+        if (selected !== undefined) {
+          approvedExportLocations.add(selected);
+        }
+        return selected;
+      },
+      writeFile: async (location, content) => {
+        if (
+          !approvedExportLocations.has(location) ||
+          !(location instanceof vscode.Uri)
+        ) {
+          throw new TypeError("Export location was not selected by VS Code");
+        }
+        approvedExportLocations.delete(location);
+        await vscode.workspace.fs.writeFile(location, content);
+      },
+      showInformation: async (message) => {
+        await vscode.window.showInformationMessage(message);
+      },
+      showWarning: async (message) => {
+        await vscode.window.showWarningMessage(message);
+      },
+      showError: async (message) => {
+        await vscode.window.showErrorMessage(message);
+      },
+      };
+    })(),
+    toolVersion: EXTENSION_VERSION,
   });
 
   const treeProvider = new VulnerabilityTreeProvider(
@@ -262,7 +373,7 @@ export function activate(
       }
       scanWorkspaceCommand.cancelActive();
       try {
-        await cache.clear();
+        await Promise.all([cache.clear(), cisaCache.clear()]);
         logger.info("Vulnerability response cache cleared by user request");
       } catch (error: unknown) {
         logger.error("Could not clear the vulnerability response cache", error);
@@ -347,6 +458,25 @@ export function activate(
       }
     },
   );
+  const evaluateSecurityGateCommandRegistration =
+    vscode.commands.registerCommand(
+      EVALUATE_SECURITY_GATE_COMMAND,
+      async (): Promise<void> => {
+        await securityPlatformCommands.evaluateSecurityGate();
+      },
+    );
+  const exportCycloneDxCommandRegistration = vscode.commands.registerCommand(
+    EXPORT_CYCLONE_DX_COMMAND,
+    async (): Promise<void> => {
+      await securityPlatformCommands.exportCycloneDx();
+    },
+  );
+  const exportSarifCommandRegistration = vscode.commands.registerCommand(
+    EXPORT_SARIF_COMMAND,
+    async (): Promise<void> => {
+      await securityPlatformCommands.exportSarif();
+    },
+  );
   const workspaceResetRegistration =
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       scanWorkspaceCommand.cancelActive();
@@ -381,6 +511,9 @@ export function activate(
     previewFixCommandRegistration,
     applyFixCommandRegistration,
     cancelRemediationCommandRegistration,
+    evaluateSecurityGateCommandRegistration,
+    exportCycloneDxCommandRegistration,
+    exportSarifCommandRegistration,
     workspaceResetRegistration,
   );
   logger.info("Extension activated");

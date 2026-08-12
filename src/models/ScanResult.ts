@@ -62,6 +62,12 @@ export interface ScanResult {
   readonly packageManagers: readonly string[];
   readonly dependenciesScanned: number;
   readonly vulnerableDependencies: number;
+  /**
+   * Complete provider findings before the user-facing severity filter is
+   * applied. Security gates, intelligence enrichment, and standards exports
+   * must use this collection. Existing UI continues to use `vulnerabilities`.
+   */
+  readonly unfilteredVulnerabilities?: readonly Vulnerability[];
   readonly vulnerabilities: readonly Vulnerability[];
   readonly dependencies: readonly Dependency[];
   readonly errors: readonly ScanError[];
@@ -71,4 +77,11 @@ export interface ScanResult {
   /** Phase 4 coverage kept separate for each detected dependency project. */
   readonly projectCoverage?: readonly ProjectCoverage[];
   readonly cancelled: boolean;
+}
+
+/** Returns the complete stored finding set when the scan produced one. */
+export function scanResultKnownVulnerabilities(
+  result: ScanResult,
+): readonly Vulnerability[] {
+  return result.unfilteredVulnerabilities ?? result.vulnerabilities;
 }

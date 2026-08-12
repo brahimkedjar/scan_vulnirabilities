@@ -377,11 +377,14 @@ export class ScanWorkspaceCommand implements vscode.Disposable {
     signal: AbortSignal,
   ): Promise<boolean> {
     const configuredSeverity = this.services.getConfiguration().minimumSeverity;
+    const completeFindings =
+      result.unfilteredVulnerabilities ?? result.vulnerabilities;
     const displayedResult: ScanResult = Object.freeze({
       ...result,
+      unfilteredVulnerabilities: completeFindings,
       vulnerabilities: Object.freeze(
         filterVulnerabilitiesBySeverity(
-          result.vulnerabilities,
+          completeFindings,
           configuredSeverity,
         ),
       ),
@@ -537,6 +540,7 @@ export class ScanWorkspaceCommand implements vscode.Disposable {
       vulnerableDependencies: vulnerableDependencyCount(
         audit.vulnerabilities,
       ),
+      unfilteredVulnerabilities: audit.vulnerabilities,
       vulnerabilities,
       dependencies: uniqueDependencies,
       errors,

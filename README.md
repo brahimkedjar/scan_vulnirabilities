@@ -1,10 +1,14 @@
 # Dependency Vulnerability Auditor
 
-Dependency Vulnerability Auditor is a defensive VS Code extension that statically
-reads dependency metadata, checks eligible exact package versions against OSV,
-and presents known dependency vulnerabilities without running project code or a
-package manager. Eligible npm direct-dependency changes can be previewed as
-bounded diffs for manual remediation.
+Dependency Vulnerability Auditor is a defensive VS Code extension that
+statically reads dependency metadata, checks eligible exact package versions
+against OSV, and presents known dependency vulnerabilities without running
+project code or a package manager. It enriches validated CVE identifiers from a
+fresh CISA Known Exploited Vulnerabilities catalog, preserves source evidence
+and conflicts, derives explainable risk bounds, evaluates a local fail-closed
+security policy, and generates CycloneDX JSON 1.6 and SARIF 2.1.0 output.
+Eligible npm direct-dependency changes can be previewed as bounded diffs for
+manual remediation.
 
 **Dependency Auditor does not automatically modify workspace dependency files in
 this release.** Remediation is preview-only/manual for every ecosystem.
@@ -17,6 +21,43 @@ startup and change scans are opt-in.
 
 - Repository: https://github.com/brahimkedjar/scan_vulnirabilities
 - Issues: https://github.com/brahimkedjar/scan_vulnirabilities/issues
+- Provider semantics: [docs/providers.md](docs/providers.md)
+- Policy and gate: [docs/policy.md](docs/policy.md)
+- CycloneDX and SARIF: [docs/sbom.md](docs/sbom.md)
+- Privacy and security: [docs/privacy.md](docs/privacy.md) and
+  [docs/security.md](docs/security.md)
+- Reachability, supply-chain, license, CI, and threat-model boundaries:
+  [docs/reachability.md](docs/reachability.md),
+  [docs/supply-chain.md](docs/supply-chain.md),
+  [docs/license.md](docs/license.md), [docs/ci.md](docs/ci.md), and
+  [docs/threat-model.md](docs/threat-model.md)
+- RHDA/RHTPA scope comparison:
+  [docs/competitive-analysis.md](docs/competitive-analysis.md)
+
+## Supply-chain intelligence in 0.8.0
+
+Version 0.8.0 is the first production Phase 7 slice, not completion of the
+broader supply-chain security roadmap. It adds:
+
+- an immutable, provider-neutral evidence model with source observations,
+  aliases, freshness, conflicts, confidence reasons, and missing-field state;
+- CISA KEV enrichment that matches exact validated CVE aliases locally and
+  never treats stale or unavailable evidence as absence;
+- per-finding evidence-backed risk lower and upper bounds;
+- a bounded security-policy engine that uses the unfiltered findings from the
+  latest scan attempt and fails closed on incomplete evidence;
+- CycloneDX JSON 1.6 generation with canonical components, safe occurrence
+  evidence, proven dependency relationships, vulnerabilities, and completeness
+  compositions; and
+- SARIF 2.1.0 generation with safe relative locations, deterministic partial
+  fingerprints, and coverage notifications.
+
+OSV remains the only live package vulnerability lookup provider. CISA KEV is an
+exploitation catalog enrichment, not a package scanner. The provider-neutral
+model can represent future sources, but this release does not directly query
+NVD or GitHub Advisory Database. CVE and GHSA identifiers in an OSV record
+remain OSV-supplied aliases unless another configured source independently
+reports them.
 
 ## Supported ecosystems and metadata
 
@@ -187,6 +228,11 @@ unsupported, unchecked, truncated, cancelled, or affected by a provider error,
 the UI reports partial or unavailable coverage and does not present a clean
 status. The Status Bar includes the unresolved count when applicable.
 
+The stored result also retains an immutable unfiltered normalized finding set.
+`minimumSeverity` remains a presentation/diagnostic filter; policy and export
+code use the unfiltered set when available. Provider totals are cross-checked so
+missing records cannot silently turn a gate or exported report clean.
+
 ## Security UI
 
 - **Dependency Security Tree View** groups results by workspace, ecosystem,
@@ -275,11 +321,11 @@ have no `eval`, dynamic code generation, or inline event handlers. Advisory
 actions accept only credential-free HTTPS URLs present in the selected
 normalized provider result.
 
-### Dependency Risk Score
+### Risk indicators
 
-The Dashboard's Dependency Risk Score is a deterministic finding-density
-indicator, not a statement about overall application security. Finding weights
-are Critical=20, High=10, Medium=4, Low=1, Unknown=0:
+The Dashboard's aggregate Dependency Risk Score remains a deterministic
+finding-density indicator, not a statement about overall application security.
+Finding weights are Critical=20, High=10, Medium=4, Low=1, Unknown=0:
 
 ```text
 min(100, round(weighted finding points / (20 * dependencies scanned) * 100))
@@ -288,6 +334,46 @@ min(100, round(weighted finding points / (20 * dependencies scanned) * 100))
 Provider and dependency coverage are displayed separately. Filtering findings
 by severity cannot turn hidden findings or incomplete coverage into a clean
 result.
+
+Phase 7 also adds an explainable per-finding risk model. Its 100 possible
+points are normalized severity (40), CVSS (30), fresh CISA KEV evidence (20),
+and reachability (10). The result contains the evidence-supported lower score,
+an upper bound that exposes missing evidence, factor-by-factor reasons, and an
+evidence-completeness state. Missing evidence adds zero asserted points; it is
+never silently converted to low risk. This release has no source/call-graph
+reachability engine, so reachability is explicitly `UNKNOWN` and its 10 points
+remain uncertainty.
+
+### Policy and standard output
+
+After a scan, use these Command Palette actions:
+
+- **Dependency Auditor: Evaluate Security Gate** evaluates
+  `dependencyAuditor.securityPolicy` against the latest attempt. When
+  `dependencyAuditor.enableCisaKevEnrichment` is enabled, this explicit action
+  also downloads or reuses the public KEV catalog and prints bounded risk-factor
+  and gate-reason evidence in the Output Channel.
+- **Dependency Auditor: Export CycloneDX JSON 1.6** opens VS Code's native Save
+  dialog and exports the latest attempt.
+- **Dependency Auditor: Export SARIF 2.1.0** opens the same trusted save boundary
+  for SARIF.
+
+No export path or file content is accepted from command arguments. Cancelling
+the Save dialog performs no write.
+
+The local security-policy engine supports bounded severity/CVSS counts and
+thresholds, required absence from fresh CISA KEV evidence, exact canonical
+ecosystem/package allow and block rules, and expiring advisory ignores. It
+evaluates unfiltered findings from the latest attempt. Invalid policy,
+incomplete coverage, provider records hidden from evaluation, cancellation, or
+required unknown evidence cannot pass. See [docs/policy.md](docs/policy.md).
+
+CycloneDX JSON 1.6 and SARIF 2.1.0 builders produce deterministic, bounded
+output from stored scan results. They retain unfiltered known findings, use safe
+workspace-relative locations only, and label incomplete source coverage.
+Relationships are emitted only when a static parser proved them. This release
+does not implement CycloneDX XML, SPDX, SBOM import/diff, signing, attestation,
+or a headless scan CLI. See [docs/sbom.md](docs/sbom.md).
 
 ## Static analysis and safety
 
@@ -332,6 +418,14 @@ environment variables, `.env` files, credentials, or tokens. OSV transport
 requires HTTPS, uses an exact host allowlist, rejects redirects, and enforces
 request/response limits and timeouts. At most five vulnerability requests run
 at once.
+
+CISA KEV enrichment downloads the public catalog with an HTTPS `GET` from its
+fixed `www.cisa.gov` feed URL. That request contains no workspace path, package
+identity, dependency data, source content, or credentials. CVE matching happens
+locally. Only a fresh complete catalog can support `NOT_LISTED`; no CVE alias,
+stale catalog, cancellation, validation failure, or unavailable catalog yields
+`UNKNOWN` instead. See [docs/providers.md](docs/providers.md) and
+[docs/privacy.md](docs/privacy.md).
 
 Successful OSV responses, including successful empty responses, are cached in
 VS Code `globalState`. Cache keys include
@@ -407,16 +501,21 @@ do not require the live OSV service. Open this directory in VS Code and press
 `F5` for an Extension Development Host when performing an interactive smoke
 test.
 
-See `docs/architecture.md` in the installed package for the adapter contract, unified
-models, provider boundary, cache keys, and coverage flow.
+See [docs/architecture.md](docs/architecture.md) for the adapter contract,
+unified models, provider and enrichment boundaries, cache keys, intelligence,
+policy, export, and coverage flows.
 
 ## Phase boundary
 
-This release intentionally does not include unattended or scheduled fixes,
-package-manager execution, dependency update commands, a CLI, CI/CD or SARIF
-integration, Marketplace publication, GitHub authentication, additional
-vulnerability providers, security policies, or arbitrary build-tool evaluation.
-Those require a separately approved later phase.
+Version 0.8.0 delivers the first bounded Phase 7 slice; it is not the entire
+supply-chain platform roadmap. It intentionally does not include unattended or
+scheduled fixes, package-manager execution, dependency update commands, a
+headless scanner CLI, CI job/PR integration, live NVD/GHSA providers, source or
+call-graph reachability, container analysis, license analysis, package-health
+or typosquatting/provenance detection, CycloneDX XML, SPDX, SBOM import/diff,
+signing/attestation, centralized reporting, or arbitrary build-tool evaluation.
+SARIF and CycloneDX support currently means bounded report generation over a
+completed extension scan, not a standalone CI scanner.
 
 Marketplace publication uses the public repository and issue tracker linked
 above.

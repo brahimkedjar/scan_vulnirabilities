@@ -18,6 +18,9 @@ const COMMANDS = Object.freeze([
   "dependencyAuditor.previewFix",
   "dependencyAuditor.applyFix",
   "dependencyAuditor.cancelRemediation",
+  "dependencyAuditor.evaluateSecurityGate",
+  "dependencyAuditor.exportCycloneDx",
+  "dependencyAuditor.exportSarif",
 ]);
 
 function requiredEnvironment(name) {
@@ -93,7 +96,7 @@ exports.run = async function runPackagedSmoke() {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(extension, `installed extension ${EXTENSION_ID} was not discovered`);
   assert.ok(isWithin(path.resolve(extension.extensionPath), extensionsDirectory));
-  assert.equal(extension.packageJSON.version, "0.7.0");
+  assert.equal(extension.packageJSON.version, "0.8.0");
 
   await extension.activate();
   assert.equal(extension.isActive, true);

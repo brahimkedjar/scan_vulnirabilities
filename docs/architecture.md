@@ -32,21 +32,102 @@ Normalized Vulnerability records
         v
 Coverage-aware ScanResult store
         |
-        v
-Local RemediationAnalyzer
+        +--> Provider-neutral evidence aggregation
+        |          + CISA KEV exact-CVE enrichment
+        |          + explainable per-finding risk bounds
+        |          + fail-closed security policy
         |
-        +--> Tree View
-        +--> Dashboard and Details
-        +--> Problems diagnostics
-        +--> Status Bar and Output Channel
+        +--> CycloneDX JSON 1.6 / SARIF 2.1.0 builders
+        |
+        +--> Local RemediationAnalyzer
+                   |
+                   +--> Tree View
+                   +--> Dashboard and Details
+                   +--> Problems diagnostics
+                   +--> Status Bar and Output Channel
 ```
 
 The scan-result store is the UI source of truth. `RemediationAnalyzer` is a
 deterministic, bounded, synchronous analysis layer over those immutable results;
 it neither parses OSV again nor performs I/O. Opening or filtering a view does
-not start a provider query. A query occurs only through the normal scan command,
-an enabled automatic scan trigger, or an explicit vulnerability-database
-refresh.
+not start a provider query. OSV package queries occur only through the normal
+scan command, an enabled automatic scan trigger, or an explicit
+vulnerability-database refresh. The separate public CISA catalog GET occurs
+only during explicit security-gate evaluation when KEV enrichment is enabled;
+it contains no workspace or package data.
+
+`ScanResult` retains both the severity-filtered presentation collection and an
+optional immutable unfiltered finding collection. Policy and export consumers
+prefer the unfiltered collection. This keeps `minimumSeverity` a display choice
+instead of allowing it to remove evidence from a security decision or report.
+
+## Intelligence and enrichment boundary
+
+The runtime distinguishes three concepts that must not be conflated:
+
+1. OSV is the live package vulnerability lookup provider.
+2. `VulnerabilityIntelligenceAggregator` is a pure provider-neutral evidence
+   model. It currently receives normalized OSV observations, but can retain
+   additional validated source observations without changing adapter code.
+3. CISA KEV is a public exploitation-catalog enrichment matched locally to
+   validated CVE aliases. It does not resolve packages or independently supply
+   affected-version records.
+
+The aggregation key begins with an exact coordinate:
+
+```text
+ecosystem + canonical package name + exact installed version
+```
+
+Alias links can combine observations only inside that coordinate. Aggregation
+retains each observation and its field-level evidence, provider status,
+freshness, observed values, explicit conflicts, confidence reasons, and missing
+fields. It does not select a consensus severity or fixed version from
+conflicting sources.
+
+The OSV adapter records the existing normalizer's exact-affected result as one
+source observation without reparsing OSV or recalculating ranges. It retains
+`undefined` separately from an explicitly empty collection so absence of data
+is not rewritten as provider evidence.
+
+### CISA KEV source
+
+`CisaKevProvider` downloads the official catalog from a fixed allowlisted HTTPS
+URL with no request body or workspace/package fields. The catalog is validated,
+bounded, normalized, and cached under a provider-specific key. Matching accepts
+only validated CVE identifiers from a finding ID or alias.
+
+A fresh catalog match yields `KNOWN_EXPLOITED`. A fresh complete catalog with a
+validated CVE and no exact match yields `NOT_LISTED`. Missing CVE identity,
+stale data, network/cache unavailability, cancellation, or malformed input
+yields `UNKNOWN`. In particular, stale evidence can never assert absence.
+
+### Risk analysis
+
+`SecurityRiskAnalyzer` is deterministic and synchronous over a normalized
+finding plus optional enrichment. Its maximum 100 points are severity (40),
+CVSS (30), known exploitation (20), and reachability (10). Each factor retains
+evidence state, contribution, possible uncertainty, reason, and optional
+source. The output reports an evidence-supported lower score and an upper bound
+that includes missing-factor capacity.
+
+Unknown evidence adds no asserted points. The current extension has no
+source/call-graph reachability analyzer, so production enrichment passes
+`UNKNOWN` for reachability rather than deriving it from dependency presence.
+
+### Policy evaluation
+
+`SecurityPolicyEngine` is a bounded pure evaluator over latest-attempt scan
+results. It uses the unfiltered findings when present and cross-checks provider
+totals. Policy validation, severity/CVSS rules, known-exploitation evidence,
+ecosystem/package selectors, and expiring advisory ignores produce structured
+reasons. Invalid/malformed input, incomplete or unavailable coverage, hidden
+provider findings, cancellation, limits, or required unknown evidence fail
+closed. Retained historical display evidence is not a substitute for the latest
+attempt.
+
+See [providers.md](providers.md) and [policy.md](policy.md) for the public
+semantics.
 
 ## Package-manager adapter boundary
 
@@ -307,6 +388,32 @@ for the audited subjects and configured provider. Unresolved, unsupported,
 unchecked, truncated, cancelled, or provider-failed work keeps the state partial
 or unavailable. The extension never claims complete vulnerability detection or
 overall project security.
+
+## Standard report boundary
+
+CycloneDX and SARIF generation are bounded projections of an immutable completed
+scan; neither builder discovers dependencies or contacts a provider.
+
+`CycloneDxJson` deduplicates resolved dependencies by canonical
+ecosystem/package/version identity, derives canonical purls and stable
+component references, retains bounded safe relative occurrence evidence, and
+emits a dependency relationship only when a stored path proves it. Inventory
+and vulnerability compositions independently report `complete`, `incomplete`,
+or `unknown`. Normalized OSV findings are linked to matching component
+coordinates using the unfiltered set when available.
+
+`SarifExporter` maps each safely located vulnerability occurrence to SARIF
+2.1.0. Rule identity prefers a CVE, then GHSA, then the provider ID. Result
+partial fingerprints include the advisory, coordinate, safe location,
+dependency classification, manager, and proven path. Unsafe locations are
+omitted rather than rewritten, and the invocation reports an unsuccessful
+notification for omitted locations or incomplete source coverage.
+
+Both builders sort and deduplicate output, validate untrusted fields, enforce
+collection/graph/output-byte limits, check cancellation, and avoid emitting
+absolute local paths. The current boundary is JSON generation only: it is not
+a headless scanner CLI, an SBOM store/importer, a signing service, or a claim of
+CycloneDX XML or SPDX support. See [sbom.md](sbom.md).
 
 ## UI boundary
 

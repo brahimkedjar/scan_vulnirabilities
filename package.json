@@ -1,8 +1,8 @@
 {
   "name": "dependency-vulnerability-auditor",
   "displayName": "Dependency Vulnerability Auditor",
-  "description": "Audits resolved dependencies across supported ecosystems and presents known OSV vulnerabilities in VS Code.",
-  "version": "0.7.0",
+  "description": "Local-first dependency security and software supply-chain intelligence for VS Code.",
+  "version": "0.8.0",
   "publisher": "brahimkedjar",
   "icon": "media/icon.png",
   "repository": {
@@ -39,6 +39,9 @@
     "onCommand:dependencyAuditor.previewFix",
     "onCommand:dependencyAuditor.applyFix",
     "onCommand:dependencyAuditor.cancelRemediation",
+    "onCommand:dependencyAuditor.evaluateSecurityGate",
+    "onCommand:dependencyAuditor.exportCycloneDx",
+    "onCommand:dependencyAuditor.exportSarif",
     "onView:dependencyAuditor.securityView",
     "onView:dependencyAuditor.remediationView"
   ],
@@ -49,7 +52,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "Scanning is read-only, never executes workspace code, and sends only supported package identities, resolved versions, and ecosystem identifiers to OSV after an explicit scan or when the user opts into automatic scanning."
+      "description": "Scanning is read-only, never executes workspace code, and sends only supported package identities, resolved versions, and ecosystem identifiers to OSV after an explicit scan or when the user opts into automatic scanning. Explicit security-gate evaluation may download the public CISA KEV catalog without sending workspace data."
     },
     "virtualWorkspaces": {
       "supported": true,
@@ -112,6 +115,24 @@
         "command": "dependencyAuditor.cancelRemediation",
         "title": "Cancel Dependency Remediation",
         "category": "Dependency Auditor"
+      },
+      {
+        "command": "dependencyAuditor.evaluateSecurityGate",
+        "title": "Evaluate Security Gate",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled"
+      },
+      {
+        "command": "dependencyAuditor.exportCycloneDx",
+        "title": "Export CycloneDX JSON 1.6",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled"
+      },
+      {
+        "command": "dependencyAuditor.exportSarif",
+        "title": "Export SARIF 2.1.0",
+        "category": "Dependency Auditor",
+        "enablement": "workspaceFolderCount > 0 && config.dependencyAuditor.enabled"
       }
     ],
     "viewsContainers": {
@@ -172,6 +193,15 @@
         },
         {
           "command": "dependencyAuditor.cancelRemediation"
+        },
+        {
+          "command": "dependencyAuditor.evaluateSecurityGate"
+        },
+        {
+          "command": "dependencyAuditor.exportCycloneDx"
+        },
+        {
+          "command": "dependencyAuditor.exportSarif"
         }
       ],
       "view/title": [
@@ -271,6 +301,107 @@
           "minimum": 1000,
           "maximum": 60000,
           "markdownDescription": "Timeout in milliseconds for each OSV request attempt."
+        },
+        "dependencyAuditor.enableCisaKevEnrichment": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When **Evaluate Security Gate** is run explicitly, download or reuse the public CISA Known Exploited Vulnerabilities catalog. The catalog request sends no package names, versions, source, or workspace data. Disable this to keep known-exploitation evidence `UNKNOWN`."
+        },
+        "dependencyAuditor.securityPolicy": {
+          "type": "object",
+          "default": {
+            "schemaVersion": 1,
+            "maxCritical": 0
+          },
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "type": "integer",
+              "enum": [1]
+            },
+            "maxCritical": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50000
+            },
+            "maxHigh": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50000
+            },
+            "minimumSeverity": {
+              "type": "string",
+              "enum": ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+            },
+            "minimumCvss": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "requireKnownExploitedAbsent": {
+              "type": "boolean"
+            },
+            "allowedEcosystems": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 32,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            },
+            "blockedPackages": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "oneOf": [
+                  { "type": "string", "maxLength": 512 },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["name"],
+                    "properties": {
+                      "name": { "type": "string", "maxLength": 512 },
+                      "ecosystem": { "type": "string", "maxLength": 64 }
+                    }
+                  }
+                ]
+              }
+            },
+            "allowedPackages": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "oneOf": [
+                  { "type": "string", "maxLength": 512 },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["name"],
+                    "properties": {
+                      "name": { "type": "string", "maxLength": 512 },
+                      "ecosystem": { "type": "string", "maxLength": 64 }
+                    }
+                  }
+                ]
+              }
+            },
+            "ignoredAdvisories": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "expiresAt"],
+                "properties": {
+                  "id": { "type": "string", "maxLength": 512 },
+                  "expiresAt": { "type": "string", "maxLength": 128 },
+                  "reason": { "type": "string", "maxLength": 1024 }
+                }
+              }
+            }
+          },
+          "markdownDescription": "Bounded local security-gate policy evaluated against the latest scan attempt and its unfiltered findings. Invalid or incomplete evidence fails closed. See `docs/policy.md`."
         }
       }
     }
@@ -278,7 +409,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --main-fields=module,main --external:vscode --outfile=dist/extension.js --sourcemap",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --main-fields=module,main --external:vscode --outfile=dist/extension.js --sourcemap=external",
     "compile": "tsc -p tsconfig.json && npm run bundle",
     "watch": "tsc --watch -p tsconfig.json",
     "lint": "eslint .",

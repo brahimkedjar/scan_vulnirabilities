@@ -555,6 +555,34 @@ void test("normalizes legacy fixedVersion-only findings when storing snapshots",
   assert.equal(Object.isFrozen(stored?.remediationCandidates), true);
 });
 
+void test("preserves the immutable unfiltered finding set for policy and export", () => {
+  const displayed = vulnerability("displayed-package");
+  const hidden: Vulnerability = {
+    ...vulnerability("hidden-package"),
+    id: "OSV-HIDDEN",
+    severity: "LOW",
+  };
+  const input = scanResult();
+  const store = new ScanResultStore();
+  store.replace([
+    {
+      ...input,
+      vulnerabilities: [displayed],
+      unfilteredVulnerabilities: [displayed, hidden],
+    },
+  ]);
+
+  const stored = store.getAll()[0];
+  assert.ok(stored !== undefined);
+  assert.equal(stored.vulnerabilities.length, 1);
+  assert.equal(stored.unfilteredVulnerabilities?.length, 2);
+  assert.equal(
+    stored.vulnerabilities[0],
+    stored.unfilteredVulnerabilities?.[0],
+  );
+  assert.ok(Object.isFrozen(stored.unfilteredVulnerabilities));
+});
+
 void test("emits bounded, disposable change subscriptions without allowing listener failures to escape", () => {
   const store = new ScanResultStore({ clock: () => 0, maximumListeners: 2 });
   let successfulListenerCalls = 0;
@@ -593,6 +621,7 @@ void test("replace with an empty array preserves getAll compatibility and clear 
   store.setScanning(true);
   store.clear();
   assert.deepEqual(store.getSnapshot(), {
+    revision: 4,
     results: [],
     displayedCoverage: "not-scanned",
     scanning: false,

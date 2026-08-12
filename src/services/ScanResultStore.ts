@@ -20,6 +20,8 @@ export interface DisposableLike {
 }
 
 export interface ScanResultStoreSnapshot {
+  /** Monotonic authority revision; changes on every observable store mutation. */
+  readonly revision: number;
   /** Results exposed through getAll(); normally the latest usable attempt. */
   readonly results: readonly ScanResult[];
   readonly displayedCoverage: ScanCoverage;
@@ -338,7 +340,28 @@ function cloneVulnerability(vulnerability: Vulnerability): Vulnerability {
 
 function cloneResult(result: ScanResult): ScanResult {
   const packageManagers = [...result.packageManagers];
-  const vulnerabilities = result.vulnerabilities.map(cloneVulnerability);
+  // The displayed list is normally a reference subset of the unfiltered
+  // provider list. Clone each provider record once and share the immutable
+  // clone between both arrays so retaining policy evidence does not double
+  // the potentially large finding-object graph.
+  const vulnerabilityClones = new Map<Vulnerability, Vulnerability>();
+  const cloneSharedVulnerability = (
+    vulnerability: Vulnerability,
+  ): Vulnerability => {
+    const existing = vulnerabilityClones.get(vulnerability);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const cloned = cloneVulnerability(vulnerability);
+    vulnerabilityClones.set(vulnerability, cloned);
+    return cloned;
+  };
+  const unfilteredVulnerabilities = result.unfilteredVulnerabilities?.map(
+    cloneSharedVulnerability,
+  );
+  const vulnerabilities = result.vulnerabilities.map(
+    cloneSharedVulnerability,
+  );
   const dependencies = result.dependencies.map(cloneDependency);
   const errors = result.errors.map((error) => Object.freeze({ ...error }));
   const providerResults = result.providerResults.map((provider) =>
@@ -359,6 +382,9 @@ function cloneResult(result: ScanResult): ScanResult {
   );
   Object.freeze(packageManagers);
   Object.freeze(vulnerabilities);
+  if (unfilteredVulnerabilities !== undefined) {
+    Object.freeze(unfilteredVulnerabilities);
+  }
   Object.freeze(dependencies);
   Object.freeze(errors);
   Object.freeze(providerResults);
@@ -372,6 +398,9 @@ function cloneResult(result: ScanResult): ScanResult {
     ...result,
     packageManagers,
     vulnerabilities,
+    ...(unfilteredVulnerabilities === undefined
+      ? {}
+      : { unfilteredVulnerabilities }),
     dependencies,
     errors,
     providerResults,
@@ -480,6 +509,7 @@ function timestamp(clock: () => number): string {
 }
 
 export class ScanResultStore implements DisposableLike {
+  private revisionState = 0;
   private results: readonly ScanResult[] = EMPTY_RESULTS;
   private displayedCoverage: ScanCoverage = "not-scanned";
   private scanningState = false;
@@ -557,6 +587,7 @@ export class ScanResultStore implements DisposableLike {
 
   public getSnapshot(): ScanResultStoreSnapshot {
     return Object.freeze({
+      revision: this.revisionState,
       results: this.results,
       displayedCoverage: this.displayedCoverage,
       scanning: this.scanningState,
@@ -602,6 +633,7 @@ export class ScanResultStore implements DisposableLike {
       return;
     }
     this.scanningState = scanning;
+    this.revisionState += 1;
     this.emitChange();
   }
 
@@ -645,6 +677,7 @@ export class ScanResultStore implements DisposableLike {
       this.successfulResults = attempt;
       this.successfulTimestamp = completedAt;
     }
+    this.revisionState += 1;
     this.emitChange();
   }
 
@@ -657,6 +690,7 @@ export class ScanResultStore implements DisposableLike {
     this.latestCoverage = "cancelled";
     this.latestTimestamp = timestamp(this.clock);
     this.scanningState = false;
+    this.revisionState += 1;
     this.emitChange();
   }
 
@@ -671,6 +705,7 @@ export class ScanResultStore implements DisposableLike {
     this.successfulTimestamp = undefined;
     this.retainedFindings = EMPTY_RETAINED_FINDINGS;
     this.retainedFindingsTruncated = false;
+    this.revisionState += 1;
     this.emitChange();
   }
 

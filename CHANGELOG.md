@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.8.0 - 2026-08-12
+
+- Add the first production Phase 7 supply-chain intelligence slice. This is not
+  completion of the broader Phase 7 roadmap.
+- Preserve the unfiltered normalized OSV finding set alongside severity-filtered
+  presentation findings so policy and exports cannot be bypassed by a UI filter.
+- Add a bounded provider-neutral evidence model that retains source
+  observations, field-level evidence, aliases, freshness, conflicts,
+  confidence reasons, and missing fields without merging different package
+  coordinates. The runtime still performs package vulnerability lookup through
+  OSV only; no direct NVD or GHSA query is claimed.
+- Add CISA Known Exploited Vulnerabilities catalog enrichment using a fixed
+  HTTPS feed, strict catalog validation, isolated caching, exact CVE matching,
+  and fail-closed `UNKNOWN` results when the catalog or identity is not fresh
+  and usable. No workspace or package data is sent to CISA.
+- Add deterministic per-finding risk bounds from normalized severity, CVSS,
+  CISA KEV evidence, and reachability evidence. Missing evidence contributes no
+  invented points and remains visible in the maximum score; reachability is
+  currently `UNKNOWN` because this release has no reachability engine.
+- Add a bounded local security-policy evaluator for severity/CVSS thresholds
+  and counts, known-exploitation absence, ecosystem/package allow and block
+  rules, and expiring advisory ignores. Invalid policy, incomplete latest-attempt
+  coverage, hidden findings, cancellation, and required unknown evidence fail
+  closed.
+- Add deterministic CycloneDX JSON 1.6 generation with canonical purls,
+  occurrence evidence, proven relationships, OSV vulnerabilities, and explicit
+  inventory/vulnerability completeness compositions.
+- Add deterministic SARIF 2.1.0 generation with safe workspace-relative
+  locations, stable partial fingerprints, unfiltered findings, and invocation
+  warnings for omitted locations or incomplete source coverage.
+- Keep package-manager and project-code execution prohibited. This release does
+  not add a headless scanner CLI, CycloneDX XML, SPDX, SBOM import/diff,
+  license/container/provenance/health analysis, or source-code reachability.
+
 ## 0.7.0 - 2026-08-12
 
 - Add an explicit, bounded remediation state machine and exact-proposal

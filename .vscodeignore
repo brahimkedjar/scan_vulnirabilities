@@ -18,9 +18,13 @@ dist/**/*.d.ts.map
 dist/commands/**
 dist/diagnostics/**
 dist/discovery/**
+dist/intelligence/**
 dist/models/**
 dist/package-managers/**
+dist/policy/**
+dist/reporting/**
 dist/remediation/**
+dist/sbom/**
 dist/services/**
 dist/status/**
 dist/tree/**
