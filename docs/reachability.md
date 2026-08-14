@@ -1,15 +1,9 @@
-# Reachability status
+# Reachability analysis
 
-Version 0.8.0 does not implement source-code, call-graph, bytecode, or runtime
-reachability analysis. Dependency paths prove package relationships only; they
-do not prove that a vulnerable function is invoked.
+Static reachability analysis is conservative and resource-bounded. It separates:
+- `VULNERABLE`
+- `VULNERABLE + REACHABLE`
+- `VULNERABLE + NOT PROVEN REACHABLE`
+- `UNKNOWN`
 
-The explainable risk model therefore reports reachability as `UNKNOWN` and
-retains its ten possible points as uncertainty. It never rewrites a missing
-import or call observation as `NOT_REACHABLE` or `NOT_EXPLOITABLE`.
-
-A future implementation needs separate bounded analyzers for JavaScript,
-Python, JVM bytecode, Go, and Rust, explicit language/version support matrices,
-confidence levels, cancellation, and fixtures that distinguish confirmed,
-likely, not-observed, and unknown evidence. Until those analyzers exist, the
-dependency graph remains inventory evidence only.
+Current support focuses on safe static inspection of imports, requires, entrypoints, and bounded graph links where the ecosystem makes that practical. When evidence is incomplete, the result stays unknown rather than becoming a false exploitability claim.

@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.9.0 - 2026-08-13
+
+- Add a host-neutral, injected filesystem/network/clock/cancellation/logging
+  core boundary and a bundled `dependency-auditor` headless entry point.
+- Add production CLI `scan` and `gate` workflows across the existing thirteen
+  static package-manager adapters and seven canonical OSV ecosystems. Exit
+  codes distinguish pass, policy violation, incomplete/unknown evidence,
+  invalid configuration, and internal failure.
+- Add bounded CLI output in text, JSON, SARIF 2.1.0, CycloneDX JSON 1.6,
+  self-contained script-free HTML, Markdown, and formula-neutralized CSV.
+  Output files are exclusively created and never overwritten.
+- Add tested host-neutral engines for explicit-metadata license inventory,
+  provenance and evidence-supported anomaly classification, JS/TS/Python
+  static reachability, cross-project version drift, CycloneDX JSON 1.4-1.6
+  import/diff/merge, immutable security snapshots and baselines, historical
+  security diff, advanced evidence policy, and local uncompressed Docker/OCI
+  archive inventory.
+- Keep integration states explicit: the CLI gate joins KEV, license,
+  provenance, reachability, and diff evidence into reports when the evidence
+  is generated, and license, provenance, reachability, and container commands
+  return the incomplete exit code instead of reporting success when evidence
+  remains unknown. VS Code scans do not automatically run the Phase 8 evidence
+  engines.
+- Add fail-closed CI examples for GitHub Actions, GitLab CI, Azure Pipelines,
+  Jenkins, and generic POSIX shell runners. Templates require a pre-provisioned,
+  version-pinned CLI and never install or execute a package manager.
+- Expand the VS Code dashboard with evidence-bound platform dimensions. An
+  unknown or not-configured dimension is never presented as clean, compliant,
+  trusted, or unreachable.
+- Preserve the static execution boundary: no package manager, build tool,
+  project code, lifecycle script, Git command, container daemon, image pull, or
+  container execution is introduced.
+- Document explicit Phase 8 non-capabilities: no CycloneDX XML, no SPDX, no
+  direct registry/container-image access, no CLI persistent cache, no usable
+  local vulnerability database ingestion, and no production remediation Apply.
+
 ## 0.8.0 - 2026-08-12
 
 - Add the first production Phase 7 supply-chain intelligence slice. This is not

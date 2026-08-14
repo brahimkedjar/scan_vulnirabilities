@@ -1259,7 +1259,7 @@ async function runSmoke() {
     assert.ok(extension, `exact extension ${EXTENSION_ID} must be installed for development`);
     assert.equal(extension.id, EXTENSION_ID);
     assert.equal(path.resolve(extension.extensionPath), extensionRoot);
-    assert.equal(extension.packageJSON.version, "0.8.0");
+    assert.equal(extension.packageJSON.version, "0.9.0");
     const api = await extension.activate();
     for (const method of [
       "getDashboardHtml",
@@ -1460,3 +1460,4 @@ async function runSmoke() {
 }
 
 exports.run = runSmoke;
+

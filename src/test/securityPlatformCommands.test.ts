@@ -169,7 +169,7 @@ function commands(
     getPolicy: () => ({ schemaVersion: 1, maxCritical: 0 }),
     getWorkspaceRoots: () => [WORKSPACE],
     ui,
-    toolVersion: "0.8.0",
+    toolVersion: "0.9.0",
   });
 }
 
@@ -223,7 +223,7 @@ void test("a scan revision change during enrichment fails closed", async () => {
     getPolicy: () => ({ schemaVersion: 1, maxCritical: 1 }),
     getWorkspaceRoots: () => [WORKSPACE],
     ui,
-    toolVersion: "0.8.0",
+    toolVersion: "0.9.0",
     loadIntelligence: async () => {
       selected = {
         ...snapshot(),
@@ -276,7 +276,7 @@ void test("explicit gate enrichment can prove a fresh KEV catalog absence withou
     }),
     getWorkspaceRoots: () => [WORKSPACE],
     ui,
-    toolVersion: "0.8.0",
+    toolVersion: "0.9.0",
     loadIntelligence: async (findings, signal) =>
       intelligence.analyze(findings, {
         ...(signal === undefined ? {} : { signal }),
@@ -354,10 +354,11 @@ void test("exports refuse active or superseded scan snapshots", async () => {
     getPolicy: () => ({ schemaVersion: 1 }),
     getWorkspaceRoots: () => [WORKSPACE],
     ui: exportUi,
-    toolVersion: "0.8.0",
+    toolVersion: "0.9.0",
   });
 
   assert.equal(await handler.exportCycloneDx(), false);
   assert.equal(exportUi.writes.length, 0);
   assert.ok(exportUi.messages.some((message) => /Scan results changed/u.test(message)));
 });
+

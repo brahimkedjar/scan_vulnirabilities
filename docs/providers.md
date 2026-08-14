@@ -1,92 +1,95 @@
-# Vulnerability and exploitation sources
+# Providers and evidence coverage
 
-Dependency Vulnerability Auditor keeps package discovery, vulnerability lookup,
-evidence aggregation, and exploitation enrichment as separate trust boundaries.
-This document describes the sources that are connected in the current runtime,
-not every source that the internal aggregation model could represent.
+Dependency discovery, package vulnerability lookup, evidence aggregation, and
+exploitation enrichment are separate boundaries.
 
-## Runtime source matrix
+## Connected provider matrix
 
-| Source | Runtime role | Data sent | Result semantics |
-|---|---|---|---|
-| [OSV](https://osv.dev/) | Vulnerability lookup for an exact supported package version | Canonical ecosystem, canonical package name, and exact version | Normalized advisory records for the queried coordinate |
-| [CISA Known Exploited Vulnerabilities (KEV)](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | Known-exploitation enrichment of CVE identifiers already present in normalized findings | Nothing from the workspace; the extension downloads the public catalog with an HTTPS `GET` | `KNOWN_EXPLOITED`, `NOT_LISTED`, or `UNKNOWN` with freshness and reason |
+| Source | Host | Role | Data sent |
+| --- | --- | --- | --- |
+| [OSV](https://osv.dev/) | VS Code and online CLI scan | Exact-version package vulnerability lookup | Canonical ecosystem, package name, exact version |
+| [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | Explicit VS Code Security Gate and CLI `gate` | CVE known-exploitation enrichment | No workspace/package data; fixed public catalog GET |
 
-OSV is the only live package vulnerability provider. The extension does not
-query NVD or GitHub Advisory Database directly. A CVE or GHSA value appearing in
-an OSV alias list is an identifier reported by OSV; it is not evidence that the
-extension independently consulted the named database.
+OSV is the only connected live package vulnerability provider. NVD, GitHub
+Advisory Database/GHSA, EPSS, Snyk, vendor feeds, private enterprise feeds, and
+OS-package/container advisory feeds are not configured.
 
-## Package coverage
+An identifier such as CVE or GHSA inside an OSV result does not mean the named
+database was independently queried.
 
-Thirteen static package-manager adapters map to seven canonical OSV ecosystems:
+## Exact package subjects
 
-| Canonical ecosystem | Adapters |
-|---|---|
-| `npm` | npm, Yarn, pnpm, Bun |
-| `PyPI` | Python requirements, Poetry, Pipenv |
-| `Maven` | Maven, Gradle |
-| `crates.io` | Cargo |
-| `Go` | Go Modules |
-| `NuGet` | NuGet |
-| `Packagist` | Composer |
+The thirteen static adapters map to `npm`, `PyPI`, `Maven`, `crates.io`, `Go`,
+`NuGet`, and `Packagist`. A dependency is sent only when static metadata proves
+a supported public-package identity and exact installed version. Equal-looking
+names in different ecosystems or versions never share a cache/provider result.
 
-An adapter being present does not make every declaration queryable. A record
-reaches OSV only when static workspace metadata proves a safe public-registry
-identity and an exact installed version. Unresolved versions, custom sources,
-unsupported syntax, and incomplete graphs remain explicit coverage gaps.
+Custom registries, local paths, Git sources, dynamic versions, unsupported
+protocols, missing selected versions, and ambiguous configuration remain
+unresolved or unsupported. Source eligibility is a query-safety decision, not
+full artifact provenance.
 
-## Evidence aggregation
+## OSV semantics
 
-The provider-neutral intelligence model retains each source observation instead
-of flattening it into one synthetic advisory. It groups alias-connected
-observations only within the same exact package coordinate:
+The request is equivalent to:
 
-```text
-ecosystem + package name + installed version
+```json
+{
+  "package": {
+    "ecosystem": "PyPI",
+    "name": "requests"
+  },
+  "version": "2.31.0"
+}
 ```
 
-For each canonical finding it retains provider/advisory provenance, aliases,
-field-level evidence, source status and freshness, observed values, explicit
-conflicts, confidence reasons, and missing-evidence fields. Transitive alias
-links can join observations for one coordinate, but an alias can never merge
-findings from different packages, ecosystems, or versions.
+Responses are bounded, schema-validated, normalized, and matched to the exact
+coordinate. Fixed versions come only from provider fixed events; the scanner
+does not invent versions. Provider errors and malformed responses never become
+empty successful results.
 
-The current runtime supplies normalized OSV observations to this model. Its
-multi-source contract is an extension point, not a claim that NVD, GHSA, Snyk,
-or another advisory provider is active.
+## KEV semantics
 
-## CISA KEV matching and freshness
+A fresh complete catalog and a validated CVE alias are required. Outcomes are:
 
-KEV enrichment uses the official public JSON catalog URL on an exact HTTPS host
-allowlist. Catalog input is treated as untrusted and is schema-checked, bounded,
-normalized, and cached only after successful validation.
+- `KNOWN_EXPLOITED` for an exact catalog match;
+- `NOT_LISTED` only for a validated CVE absent from a fresh complete catalog;
+  or
+- `UNKNOWN` for missing CVE identity, stale/unavailable/malformed data,
+  cancellation, or disabled enrichment.
 
-A finding is classified as:
+`NOT_LISTED` means only absence from the consulted CISA catalog. It is not proof
+that exploitation is impossible. The CLI `gate` joins KEV evidence through the
+same allowlisted HTTPS catalog provider when the scan produced findings.
 
-- `KNOWN_EXPLOITED` only when a validated CVE identifier exactly matches an
-  entry in a fresh catalog;
-- `NOT_LISTED` only when the finding has a validated CVE identifier, the entire
-  catalog is fresh and available, and none of those CVEs is present; or
-- `UNKNOWN` when there is no validated CVE identity, the catalog is stale or
-  unavailable, the request is cancelled, or the evidence cannot be validated.
+## Provider-neutral evidence
 
-`NOT_LISTED` means only "not present in the fresh catalog consulted." It is not
-proof that exploitation is impossible. A stale catalog is never used to assert
-absence. The assessment includes the matched CVE entries, freshness, and a
-machine-readable reason so UI and policy code do not have to infer meaning from
-a label.
+The intelligence model groups observations only inside one exact coordinate
+and retains source, timestamp, freshness, observed values, aliases, conflicts,
+confidence reasons, and missing fields. It does not flatten disagreement into
+a synthetic consensus. The interface can accept future sources, but an
+interface is not a configured provider.
 
-## Failure and cache semantics
+## Cache and failure behavior
 
-- Successful OSV responses, including empty responses, can be cached. Provider
-  errors are not cached as a clean result.
-- A stale successful OSV result may be displayed only as an explicitly counted
-  fallback; coverage remains incomplete.
-- A successfully validated KEV catalog can be cached. A stale KEV catalog can
-  explain why enrichment is unavailable, but it cannot produce `NOT_LISTED`.
-- Cancellation and resource limits do not produce a pass, clean result, or
-  synthetic evidence.
+The VS Code host can cache bounded validated successes, including empty OSV
+answers. A live failure can use an expired success only as visibly stale
+fallback; coverage remains incomplete. KEV has a separate cache and stale data
+cannot assert `NOT_LISTED`.
 
-See [privacy.md](privacy.md) for network payloads and [security.md](security.md)
-for trust boundaries and input limits.
+The CLI uses an in-memory cache for each process and has no persistent cache.
+`--offline-db FILE` loads a validated bounded local advisory database and keeps
+the run offline; without it, offline scans stay incomplete. See
+[offline.md](offline.md).
+
+## Provider coverage is not universe coverage
+
+A complete result means every eligible subject in the configured static scan
+received usable evidence from the connected provider. It does not prove that:
+
+- every project dependency was statically resolvable;
+- OSV contains every vulnerability;
+- runtime loading or reachability is known;
+- a package is trustworthy, correctly licensed, or free of malicious content;
+  or
+- an image or operating-system package was checked.

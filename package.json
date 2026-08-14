@@ -2,7 +2,7 @@
   "name": "dependency-vulnerability-auditor",
   "displayName": "Dependency Vulnerability Auditor",
   "description": "Local-first dependency security and software supply-chain intelligence for VS Code.",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "brahimkedjar",
   "icon": "media/icon.png",
   "repository": {
@@ -46,6 +46,9 @@
     "onView:dependencyAuditor.remediationView"
   ],
   "main": "./dist/extension.js",
+  "bin": {
+    "dependency-auditor": "./dist/cli/main.js"
+  },
   "extensionKind": [
     "workspace"
   ],
@@ -409,7 +412,9 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --main-fields=module,main --external:vscode --outfile=dist/extension.js --sourcemap=external",
+    "bundle": "npm run bundle:extension && npm run bundle:cli",
+    "bundle:extension": "esbuild src/extension.ts --bundle --platform=node --format=cjs --main-fields=module,main --external:vscode --outfile=dist/extension.js --sourcemap=external",
+    "bundle:cli": "esbuild src/cli/main.ts --bundle --platform=node --format=cjs --main-fields=module,main --outfile=dist/cli/main.js --sourcemap=external --banner:js=\"#!/usr/bin/env node\"",
     "compile": "tsc -p tsconfig.json && npm run bundle",
     "watch": "tsc --watch -p tsconfig.json",
     "lint": "eslint .",
@@ -439,3 +444,4 @@
     "yaml": "2.9.0"
   }
 }
+

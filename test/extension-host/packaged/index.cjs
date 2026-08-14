@@ -96,7 +96,7 @@ exports.run = async function runPackagedSmoke() {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(extension, `installed extension ${EXTENSION_ID} was not discovered`);
   assert.ok(isWithin(path.resolve(extension.extensionPath), extensionsDirectory));
-  assert.equal(extension.packageJSON.version, "0.8.0");
+  assert.equal(extension.packageJSON.version, "0.9.0");
 
   await extension.activate();
   assert.equal(extension.isActive, true);
@@ -123,3 +123,4 @@ exports.run = async function runPackagedSmoke() {
     `Phase 5B packaged VSIX activation PASS (${extension.id}@${extension.packageJSON.version})\n`,
   );
 };
+

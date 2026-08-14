@@ -1,97 +1,136 @@
 # Security model
 
-Dependency Vulnerability Auditor is a defensive static analyzer. Its core
-security property is that discovering dependencies and producing vulnerability,
-intelligence, policy, risk, SBOM, and SARIF results does not execute workspace
-code or package-manager commands.
+Dependency Vulnerability Auditor is a defensive static analyzer. Its primary
+runtime guarantee is that dependency discovery, vulnerability lookup, policy,
+reporting, and evidence analysis do not execute workspace code or package
+manager commands.
 
 ## Trust boundaries
 
 ```text
-Untrusted workspace metadata
-        -> bounded static parsers
-        -> resolved Dependency records or explicit coverage gaps
-        -> canonical public-package identity validation
-        -> allowlisted OSV request
-        -> bounded provider validation and normalization
-        -> immutable scan result
-
-Untrusted public KEV catalog
-        -> bounded catalog validation
-        -> exact local CVE matching
-        -> freshness-aware exploitation assessment
-
-Immutable scan result
-        -> intelligence/risk/policy/export modules
-        -> escaped UI or explicit local export
+untrusted paths and dependency metadata
+  -> no-follow bounded filesystem and parsers
+  -> exact Dependency or explicit gap
+  -> canonical public-package mapper
+  -> exact-host HTTPS provider
+  -> bounded validation and normalized findings
+  -> coverage-aware gate and escaped reports
 ```
 
-Package-manager adapters cannot contact vulnerability providers. Provider code
-cannot parse the workspace. Policy, risk, aggregation, CycloneDX, and SARIF
-modules are pure or injected-boundary modules and do not own a shell, terminal,
-task, package-manager, registry-download, or project-code execution interface.
+Separate optional inputs - CISA KEV, imported CycloneDX JSON, local container
+archive bytes, source text, policy files, and caller-supplied evidence - are
+validated and bounded before entering a domain model.
 
-## Execution boundary
+## Prohibited execution
 
-The extension does not invoke npm, Yarn, pnpm, Bun, Python, Poetry, Pipenv,
-Maven, Gradle, Cargo, Go, dotnet/NuGet, Composer, a shell, a terminal, or a VS
-Code task to discover, resolve, scan, repair, or export dependencies. Dynamic
-build expressions and missing graph data become unresolved or unsupported
-coverage instead of being evaluated or guessed.
+Scanner runtime does not invoke:
 
-Production remediation remains preview-only/manual. The tested transaction
-engine requires a race-safe conditional atomic replacement primitive, and the
-packaged adapter does not claim that the available host primitive supplies that
-guarantee.
+- npm, Yarn, pnpm, Bun, pip, Poetry, Pipenv, Maven, Gradle, Cargo, Go,
+  dotnet/NuGet, or Composer;
+- package lifecycle scripts, project modules, build files, shell commands,
+  terminals, or VS Code tasks;
+- Git commands or hooks;
+- Docker, Podman, container daemons, image pulls, or container processes; or
+- arbitrary executables supplied by workspace metadata.
 
-## Fail-closed semantics
+Parsers read build/dependency declarations as untrusted text. Unsupported
+dynamic expressions are not evaluated.
 
-- An unresolved or custom-source dependency is not reclassified as a public
-  package.
-- Provider failure, stale fallback, cancellation, parser truncation, and
-  unchecked dependencies cannot produce a clean scan state.
-- A stale or unavailable KEV catalog produces `UNKNOWN`, never a synthetic
-  not-exploited result.
-- Missing CVSS, severity, exploitation, or reachability evidence contributes no
-  invented risk points and remains visible as uncertainty.
-- The security gate cannot pass invalid policy, malformed input, hidden
-  provider findings, incomplete latest-attempt coverage, cancellation, or a
-  required evidence field that is unknown.
-- SBOM and SARIF exporters label incomplete coverage and omit unsafe locations;
-  they do not invent dependency edges or workspace-relative paths.
+## Filesystem controls
 
-## Untrusted output handling
+The headless `NodeFileSystem` resolves regular local roots and rejects traversal,
+symlink/reparse components, special files, identity changes, excess directory
+entries, oversized reads, invalid UTF-8, and cancellation. Discovery skips
+common generated/vendor/VCS directories and does not follow directory links.
 
-Provider and workspace strings are treated as untrusted throughout rendering.
-Webview values are context-escaped and bounded. Webviews use a restrictive
-Content Security Policy with no `eval`, dynamic code generation, or inline
-event handlers. Host actions resolve opaque, host-owned selections rather than
-accepting arbitrary paths or URLs from webview messages.
+CLI reports are written only by explicit `--output`. The implementation uses
+exclusive create, refuses existing targets, requires a directly resolved
+regular parent directory, writes with restrictive mode where supported, syncs,
+and verifies the resulting size. It never overwrites a report.
 
-Exports validate tokens, timestamps, URLs, collection sizes, graph sizes,
-locations, result counts, and output byte size. Stable hashes are used for
-component references and SARIF fingerprints; they are identifiers, not digital
-signatures.
+Production remediation has a separate identity-plus-exact-hash atomic CAS
+contract. Public Node filesystem APIs cannot prove it across supported hosts,
+so production Apply is disabled before staging or writing.
 
-## Current non-capabilities
+## Network controls
 
-The current slice does not provide:
+- OSV requests use HTTPS and exact `api.osv.dev` allowlisting.
+- The extension's optional KEV request uses the fixed official CISA HTTPS feed.
+- Redirects are rejected.
+- Timeouts, retries, response bytes, pagination, concurrency, validation, and
+  cancellation are bounded.
+- Only supported canonical package identity and exact version are sent to OSV.
+- Provenance URL fields are parsed locally and never contacted.
+- Container images are never pulled; only caller-supplied archive bytes can be
+  analyzed through the core API.
 
-- a source-code or call-graph reachability engine;
-- container image, Dockerfile build, or base-image analysis;
-- package license, maintainer-health, provenance/signature, typosquatting, or
-  dependency-confusion analysis;
-- live NVD or GitHub Advisory Database queries;
-- CycloneDX XML, SPDX, SBOM import, SBOM diff, VEX, signing, or attestation;
-- a headless scanner CLI, CI task, PR annotation, or centralized server; or
-- unattended dependency modification.
+There is no direct NVD, GHSA, EPSS, registry, repository, or arbitrary URL
+provider in this release.
 
-Those omissions are explicit evidence gaps, not implied negative findings.
+## Fail-closed rules
+
+- An unresolved, ambiguous, custom-source, malformed, or truncated dependency
+  is not reclassified as a public registry package.
+- Provider failure, stale fallback, offline-without-evidence, cancellation,
+  limits, and hidden provider records cannot produce complete coverage.
+- Unknown severity/CVSS/KEV evidence fails when a configured rule requires it.
+- Advanced evidence rules fail or warn according to explicit unknown-evidence
+  policy. EPSS always fails when required because no provider is configured.
+- `NOT_OBSERVED` reachability does not mean unreachable or non-exploitable.
+- Provenance anomaly signals are investigation evidence, never malware or
+  vulnerability verdicts.
+- Unknown license metadata is never inferred from package identity.
+- Container inventory without an OS-package advisory provider cannot claim a
+  clean image.
+- A snapshot/SBOM diff does not report a resolved item when incomplete evidence
+  makes absence ambiguous.
+
+## Untrusted parser controls
+
+Bounded JSON rejects duplicate keys and prototype-pollution keys before
+canonicalization. SBOM import retains only normalized identity, relationship,
+rating, hash, and coverage evidence; it omits untrusted paths, arbitrary prose,
+URLs, and secrets. Tar parsing checks headers, checksums, entry type/path,
+duplicates, links, declared sizes, aggregate size, digest, layer count, and
+package database bounds. Compressed container layers are explicit unsupported
+coverage, not silently skipped clean.
+
+## Output controls
+
+Terminal strings have controls, ANSI-sensitive characters, and bidirectional
+controls neutralized and are bounded. Webviews use strict CSP and escaped
+host-owned data. HTML reports contain no executable JavaScript and use
+`default-src 'none'`. Markdown and CSV have context-specific escaping; CSV
+neutralizes spreadsheet formulas.
+
+Command/webview callers cannot provide remediation bytes, arbitrary export
+paths, or advisory URLs. The extension resolves opaque selections against
+current host-owned state.
+
+## Cache and offline controls
+
+The extension caches validated successful OSV responses in bounded VS Code
+`globalState`; CISA KEV uses a distinct cache. Errors are not stored as empty
+successes. A stale cache entry remains stale evidence.
+
+The CLI has no persistent cache. `--offline` makes zero network calls and
+returns incomplete when vulnerability evidence is needed unless a local
+database is supplied. `--offline-db FILE` loads a validated bounded local
+advisory database; the offline run then queries only that local provider and
+reports its age, validity window, and payload digest.
+
+## Security regression areas
+
+Tests cover traversal, symlink/junction/reparse behavior, TOCTOU identity
+changes, read/output bounds, cancellation, malformed providers, SSRF controls,
+duplicate/prototype JSON keys, unsafe SBOM references, tar traversal/links/
+checksums/digests, XSS, Markdown/CSV injection, log controls, stale evidence,
+policy unknowns, and no-write remediation refusal.
 
 ## Reporting security issues
 
 Use the repository's private security-reporting facility when available. If it
-is not available, open a minimal issue that contains no exploit details or
-secrets and request a private contact channel:
+is unavailable, open a minimal issue without exploit details or secrets and ask
+for a private contact channel:
 
-https://github.com/brahimkedjar/scan_vulnirabilities/issues
+<https://github.com/brahimkedjar/scan_vulnirabilities/issues>

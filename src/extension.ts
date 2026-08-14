@@ -83,7 +83,7 @@ export const EXPORT_CYCLONE_DX_COMMAND =
 export const EXPORT_SARIF_COMMAND = "dependencyAuditor.exportSarif";
 export const SECURITY_TREE_VIEW = "dependencyAuditor.securityView";
 export const OUTPUT_CHANNEL_NAME = "Dependency Vulnerability Auditor";
-export const EXTENSION_VERSION = "0.8.0";
+export const EXTENSION_VERSION = "0.9.0";
 
 export interface DependencyAuditorTestApi {
   readonly getDashboardHtml: () => string | undefined;
@@ -320,6 +320,83 @@ export function activate(
     },
     remediationAnalyzer,
     remediationApplyController,
+    () => {
+      const snapshot = resultStore.getSnapshot();
+      const scanned = snapshot.latestAttempt.length > 0;
+      const coverageStatus = snapshot.latestAttemptCoverage === "complete"
+        ? "complete" as const
+        : scanned
+          ? "partial" as const
+          : "not-configured" as const;
+      return {
+        dependencyGraph: {
+          status: coverageStatus,
+          findings: snapshot.latestAttempt.reduce(
+            (total, result) =>
+              total + result.dependencies.filter(
+                (dependency) => (dependency.dependencyPath?.length ?? 0) > 1,
+              ).length,
+            0,
+          ),
+          summary: "Resolved dependency paths and project coverage are visible in the Dependency Security tree; absent paths remain unknown.",
+        },
+        history: {
+          status: "not-configured" as const,
+          findings: 0,
+          summary: "Immutable snapshot diff is available through the headless host; the VS Code host does not persist a security timeline automatically.",
+        },
+        licenses: {
+          status: "unknown" as const,
+          findings: 0,
+          summary: "Dependency records do not yet contain authoritative license metadata for this scan.",
+        },
+        provenance: {
+          status: coverageStatus,
+          findings: snapshot.latestAttempt.reduce(
+            (total, result) =>
+              total + result.errors.filter(
+                (error) =>
+                  error.code === "UNSUPPORTED_PACKAGE_SOURCE" ||
+                  error.code === "UNSUPPORTED_PACKAGE_IDENTITY",
+              ).length,
+            0,
+          ),
+          summary: "Static source eligibility and workspace repository configuration are enforced; broader publisher/signature provenance may be unknown.",
+        },
+        reachability: {
+          status: "not-configured" as const,
+          findings: 0,
+          summary: "Static source reachability is available in the host-neutral engine but is not run automatically by the VS Code scan.",
+        },
+        supplyChain: {
+          status: "not-configured" as const,
+          findings: 0,
+          summary: "No provider-backed historical package metadata was supplied for anomaly comparison.",
+        },
+        sbom: {
+          status: scanned ? "complete" as const : "not-configured" as const,
+          findings: 0,
+          summary: scanned
+            ? "CycloneDX JSON 1.6 export is available from the latest stored scan."
+            : "Run a dependency scan before exporting an SBOM.",
+        },
+        containers: {
+          status: "not-configured" as const,
+          findings: 0,
+          summary: "Container archives are never scanned automatically; static archive analysis is available from the headless host.",
+        },
+        policy: {
+          status: scanned ? coverageStatus : "not-configured" as const,
+          findings: 0,
+          summary: "Security Gate evaluation is explicit and is not triggered by opening this dashboard.",
+        },
+        baselines: {
+          status: "not-configured" as const,
+          findings: 0,
+          summary: "No integrity-protected security baseline is currently loaded in the VS Code host.",
+        },
+      };
+    },
   );
   const remediationCenterProvider = new RemediationCenterProvider(
     resultStore,
@@ -562,3 +639,4 @@ export function activate(
 export function deactivate(): void {
   // VS Code disposes all subscriptions registered by activate().
 }
+

@@ -123,9 +123,64 @@ export interface DashboardRenderContext {
   readonly remediationAnalysisTimestamp?: string;
   /** Session-only Phase 5B presentation state; no file contents are stored. */
   readonly remediationApply?: RemediationApplySnapshot;
+  /** Phase 8 evidence-only platform projection; opening the dashboard never computes it. */
+  readonly platformEvidence?: DashboardPlatformEvidence;
+}
+
+export interface DashboardPlatformEvidenceDimension {
+  readonly status: "complete" | "partial" | "unknown" | "not-configured";
+  readonly findings: number;
+  readonly summary: string;
+}
+
+export interface DashboardPlatformEvidence {
+  readonly dependencyGraph: DashboardPlatformEvidenceDimension;
+  readonly history: DashboardPlatformEvidenceDimension;
+  readonly licenses: DashboardPlatformEvidenceDimension;
+  readonly provenance: DashboardPlatformEvidenceDimension;
+  readonly reachability: DashboardPlatformEvidenceDimension;
+  readonly supplyChain: DashboardPlatformEvidenceDimension;
+  readonly sbom: DashboardPlatformEvidenceDimension;
+  readonly containers: DashboardPlatformEvidenceDimension;
+  readonly policy: DashboardPlatformEvidenceDimension;
+  readonly baselines: DashboardPlatformEvidenceDimension;
 }
 
 const MAXIMUM_RETAINED_FINDING_ROWS = 100;
+
+const PLATFORM_DIMENSIONS = [
+  ["dependencyGraph", "Dependency graph"],
+  ["history", "Security history"],
+  ["licenses", "Licenses"],
+  ["provenance", "Provenance"],
+  ["reachability", "Reachability"],
+  ["supplyChain", "Supply chain"],
+  ["sbom", "SBOM"],
+  ["containers", "Containers"],
+  ["policy", "Policy"],
+  ["baselines", "Baselines"],
+] as const;
+
+function renderPlatformEvidence(
+  evidence: DashboardPlatformEvidence | undefined,
+): string {
+  const cards = PLATFORM_DIMENSIONS.map(([key, label]) => {
+    const dimension = evidence?.[key] ?? {
+      status: "not-configured" as const,
+      findings: 0,
+      summary: `${label} evidence has not been collected for this scan.`,
+    };
+    const status = dimension.status === "complete"
+      ? "Complete"
+      : dimension.status === "partial"
+        ? "Partial"
+        : dimension.status === "unknown"
+          ? "Unknown"
+          : "Not configured";
+    return `<article class="metric platform-dimension" aria-label="${escapeHtml(label)}: ${escapeHtml(status)}"><span class="severity-label">${escapeHtml(label)}</span><strong>${escapeHtml(status)}</strong><p class="muted">${escapeHtml(dimension.summary, 1_024)}</p>${dimension.findings === 0 ? "" : `<p>${dimension.findings.toString()} evidence ${dimension.findings === 1 ? "finding" : "findings"}</p>`}</article>`;
+  }).join("");
+  return `<section aria-labelledby="platform-heading"><h2 id="platform-heading">Security platform evidence</h2><p class="muted">These dimensions are evidence-bound. Unknown or not configured never means clean, compliant, unreachable, or trusted.</p><div class="metrics">${cards}</div></section>`;
+}
 
 function finiteCount(value: number): number {
   return Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
@@ -1101,6 +1156,8 @@ export function renderDashboardDocument(
         <dt>Coverage</dt><dd>${summary.coverageComplete ? "Complete" : "Incomplete"}</dd>
       </dl>
     </section>
+
+    ${renderPlatformEvidence(context.platformEvidence)}
 
     <section aria-labelledby="coverage-heading">
       <h2 id="coverage-heading">Dependency coverage by ecosystem</h2>

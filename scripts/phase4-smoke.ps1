@@ -303,8 +303,8 @@ $extensionId = "$($manifest.publisher).$($manifest.name)"
 if ($extensionId -cne "brahimkedjar.dependency-vulnerability-auditor") {
     throw "Unexpected extension ID: $extensionId"
 }
-if ([string]$manifest.version -cne "0.8.0") {
-    throw "Phase 7 smoke requires extension version 0.8.0, found $($manifest.version)."
+if ([string]$manifest.version -cne "0.9.0") {
+    throw "Phase 7 smoke requires extension version 0.9.0, found $($manifest.version)."
 }
 $fixtureSourceFingerprint = Get-DirectoryFingerprint -Path $fixtureSource
 $disposableFixtureFingerprint = $null
@@ -498,3 +498,4 @@ finally {
         throw $fixtureIntegrityFailure
     }
 }
+

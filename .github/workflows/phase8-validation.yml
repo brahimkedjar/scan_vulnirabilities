@@ -1,0 +1,61 @@
+name: Phase 8 validation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm audit --omit=dev
+
+      - run: npm run package:check
+
+      - run: npm run package:vsix
+
+      - name: Verify VSIX contents
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import pathlib
+          import zipfile
+
+          package = json.loads(pathlib.Path("package.json").read_text(encoding="utf-8"))
+          expected = f'{package["name"]}-{package["version"]}.vsix'
+          matches = glob.glob(expected)
+          if len(matches) != 1:
+              raise SystemExit(f'expected one VSIX named {expected}, found {matches}')
+
+          with zipfile.ZipFile(matches[0]) as archive:
+              names = archive.namelist()
+
+          forbidden = [
+              name
+              for name in names
+              if name.startswith(("src/test/", "test/", "scripts/"))
+              or "node_modules" in name
+              or name.endswith(".map")
+          ]
+          if forbidden:
+              raise SystemExit("forbidden VSIX entries: " + ", ".join(forbidden[:20]))
+
+          print(json.dumps({"vsix": matches[0], "entries": len(names)}, indent=2))
+          PY

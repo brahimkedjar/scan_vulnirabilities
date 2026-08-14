@@ -4,6 +4,7 @@ import type { ScanResult } from "../models/ScanResult";
 import type { RemediationAnalysisSource } from "../remediation/RemediationAnalysisSource";
 import {
   renderDashboardDocument,
+  type DashboardPlatformEvidence,
   type DashboardRenderContext,
 } from "./dashboardRenderer";
 import { createWebviewNonce } from "./webviewSecurity";
@@ -69,6 +70,7 @@ export class DashboardProvider implements vscode.Disposable {
     private readonly actions: DashboardActions,
     private readonly remediationSource?: RemediationAnalysisSource,
     private readonly remediationController?: RemediationApplyController,
+    private readonly platformEvidenceSource?: () => DashboardPlatformEvidence,
   ) {
     this.storeSubscription = this.resultStore.onDidChange?.(() => {
       this.remediationOverride = undefined;
@@ -166,11 +168,18 @@ export class DashboardProvider implements vscode.Disposable {
     } catch {
       // Mutation actions remain hidden if controller state is unavailable.
     }
+    let platformEvidence: DashboardPlatformEvidence | undefined;
+    try {
+      platformEvidence = this.platformEvidenceSource?.();
+    } catch {
+      // Every platform dimension falls back to Not configured.
+    }
     const context: DashboardRenderContext = {
       workspaceOpen: (vscode.workspace.workspaceFolders?.length ?? 0) > 0,
       scanResults,
       ...(remediationAnalysis === undefined ? {} : { remediationAnalysis }),
       ...(remediationApply === undefined ? {} : { remediationApply }),
+      ...(platformEvidence === undefined ? {} : { platformEvidence }),
       ...(this.remediationOverride === undefined
         ? {}
         : {
